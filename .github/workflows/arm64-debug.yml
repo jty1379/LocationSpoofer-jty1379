@@ -1,4 +1,4 @@
-name: Build ARM64 Debug APKs
+name: Build Global ARM64 Debug APK
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  build-arm64:
+  build-global-arm64:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,36 +26,33 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Build scoped and global Debug APKs
+      - name: Build global Debug APK
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon :app:assembleScopedDebug
           ./gradlew --no-daemon :app:assembleGlobalDebug
 
-      - name: Collect ARM64 APKs
+      - name: Collect global ARM64 APK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
 
-          SCOPED_APK=$(find app/build/outputs/apk/scoped/debug -type f -name '*.apk' -name '*arm64-v8a*' | head -n 1)
           GLOBAL_APK=$(find app/build/outputs/apk/global/debug -type f -name '*.apk' -name '*arm64-v8a*' | head -n 1)
 
-          if [ -z "$SCOPED_APK" ] || [ -z "$GLOBAL_APK" ]; then
-            echo 'ARM64 APK not found.'
+          if [ -z "$GLOBAL_APK" ]; then
+            echo 'Global ARM64 APK not found.'
             find app/build/outputs/apk -type f -name '*.apk' -print || true
             exit 1
           fi
 
-          cp "$SCOPED_APK" dist/LocationSpoofer-scoped-arm64-v8a-debug.apk
           cp "$GLOBAL_APK" dist/LocationSpoofer-global-arm64-v8a-debug.apk
           ls -lh dist
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LocationSpoofer-arm64-debug
-          path: dist/*.apk
+          name: LocationSpoofer-global-arm64-debug
+          path: dist/LocationSpoofer-global-arm64-v8a-debug.apk
           if-no-files-found: error
 
       - name: Publish downloadable APK release
@@ -64,9 +61,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="arm64-debug-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" dist/*.apk \
+          TAG="global-arm64-debug-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" dist/LocationSpoofer-global-arm64-v8a-debug.apk \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "LocationSpoofer ARM64 Debug #${GITHUB_RUN_NUMBER}" \
-            --notes "Automated ARM64-v8a debug build from commit ${GITHUB_SHA}. Includes scoped and global variants."
+            --title "LocationSpoofer Global ARM64 Debug #${GITHUB_RUN_NUMBER}" \
+            --notes "Automated global ARM64-v8a debug build from commit ${GITHUB_SHA}."
